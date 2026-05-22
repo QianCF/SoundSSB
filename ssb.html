@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+    <html lang="zh">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <title>对讲机-在浏览器里玩“无线电”</title>
+
+        <style>
+            html, body
+            {
+                width: 100%;
+                height: 100%;
+            }
+            a:link {color:#0033ff;}
+            a:hover {color:#ffaa00;}
+            a:active {color:#00ff00;}
+        </style>
+
+        <script>console.info("meow!");</script>
+    </head>
+    <body background="">
+        
+    <h1 style="display:none">
+      <img src="favicon.ico" alt="icon"/>
+      Altzin,钱辰飞
+    </h1>
+    <noscript>
+        Altzin,钱辰飞
+    </noscript>
+    <span style="display:none">
+        Altzin,钱辰飞
+  </span>
+
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #1a1a2e; padding: 20px; color: #eee; }
+    .wrap { max-width: 520px; margin: 0 auto; }
+    h2 { text-align: center; color: #4CAF50; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #4CAF50; }
+    .panel { background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    select, button { padding: 14px; border-radius: 8px; border: 1px solid #334; font-size: 16px; width: 100%; margin-bottom: 10px; }
+    select { background: #0f3460; color: #eee; }
+    button { background: #4CAF50; color: white; border: none; cursor: pointer; transition: background 0.2s; }
+    button.secondary { background: #457b9d; }
+    button.secondary:hover:not(:disabled) { background: #5a9bc9; }
+    button:hover:not(:disabled) { background: #45a049; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    .btn-row { display: flex; gap: 10px; }
+    .btn-row button { flex: 1; margin-bottom: 0; }
+    .status { padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; margin-top: 8px; }
+    .idle { background: #2a2a4a; color: #aaa; }
+    .active { background: #1b4332; color: #95d5b2; }
+    .error { background: #4a1515; color: #f8a5a5; }
+    .warn { background: #4a3f15; color: #ffe08a; }
+    .info { font-size: 12px; color: #888; text-align: center; margin-top: 8px; line-height: 1.5; }
+    .ch-tag { text-align: center; font-size: 14px; color: #a8dadc; margin-bottom: 10px; }
+    .ptt-wrap { display: flex; justify-content: center; margin: 16px 0; }
+    #pttBtn {
+        width: 160px; height: 160px; border-radius: 50%; font-size: 22px; font-weight: bold;
+        border: 4px solid #2d6a4f; user-select: none; touch-action: none;
+    }
+    #pttBtn.receive { background: #1d3557; border-color: #457b9d; }
+    #pttBtn.transmit { background: #e63946; border-color: #ff6b6b; box-shadow: 0 0 24px rgba(230,57,70,0.6); }
+    .mode-badge {
+        display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: bold;
+    }
+    .mode-badge.rx { background: #1d3557; color: #a8dadc; }
+    .mode-badge.tx { background: #9d0208; color: #ffccd5; }
+    .row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .row label { white-space: nowrap; font-size: 14px; color: #aaa; min-width: 72px; }
+    .row select { flex: 1; margin-bottom: 0; }
+    .gain-row { margin-bottom: 14px; }
+    .gain-row .gain-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 14px; color: #aaa; }
+    .gain-row .gain-val { color: #4CAF50; font-weight: bold; min-width: 48px; text-align: right; }
+    .gain-row input[type=range] { width: 100%; height: 8px; accent-color: #4CAF50; cursor: pointer; }
+    .broadcast-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .broadcast-controls button { flex: 1; min-width: 100px; margin-bottom: 0; font-size: 14px; padding: 10px 12px; }
+    .progress-row { margin: 12px 0; }
+    .progress-row input[type=range] { width: 100%; accent-color: #457b9d; }
+    .time-label { font-size: 12px; color: #888; text-align: center; margin-top: 4px; }
+    .file-name { font-size: 13px; color: #a8dadc; text-align: center; margin-bottom: 8px; word-break: break-all; }
+    #fileInput { display: none; }
+</style>
+
+<div class="wrap">
+    <h2>对讲机-在浏览器里玩“无线电”</h2>
+<!--由于可发的声音带宽实在是太少了，只提供一个信道-->
+    <div class="panel" id="setupPanel">
+        <div class="ch-tag">CH2 · 15–23 kHz · USB上边带调制</div>
+        <div class="gain-row">
+            <div class="gain-head"><span>扬声器增益</span><span class="gain-val" id="spkGainVal">5.0×</span></div>
+            <input type="range" id="spkGainSlider" min="0" max="10" step="0.1" value="5">
+        </div>
+        <div class="row" id="micRow">
+            <label>麦克风</label>
+            <select id="micSelect"><option value="">启动对讲机时选择…</option></select>
+        </div>
+        <div class="btn-row">
+            <button id="startWalkieBtn">启动对讲机</button>
+            <button id="startBroadcastBtn" class="secondary">启动音频广播</button>
+        </div>
+        <div class="status idle" id="permStatus">选择模式启动（广播无需麦克风）</div>
+        <div class="info">对讲机需麦克风；广播载入音频后长发射，播完自动暂停。<br/><span style="color:red">safari似乎不正常，worklet不可用，文件选择器也有故障。</span></div>
+    </div>
+
+    <div class="panel" id="radioPanel" style="display:none;">
+        <div class="gain-row">
+            <div class="gain-head"><span>麦克风增益</span><span class="gain-val" id="micGainVal">2.0×</span></div>
+            <input type="range" id="micGainSlider" min="0" max="5" step="0.1" value="2">
+        </div>
+        <div style="text-align:center;margin:12px 0;">
+            <span class="mode-badge rx" id="modeBadge">接收</span>
+        </div>
+        <div class="ptt-wrap">
+            <button id="pttBtn" class="receive">按住发射</button>
+        </div>
+        <div class="status idle" id="radioStatus">接收中</div>
+    </div>
+
+    <div class="panel" id="broadcastPanel" style="display:none;">
+        <div class="file-name" id="broadcastFileName">未载入音频</div>
+        <input type="file" id="fileInput" accept="audio/*">
+        <div class="progress-row">
+            <input type="range" id="progressSlider" min="0" max="1000" value="0" step="1">
+            <div class="time-label" id="timeLabel">0:00 / 0:00</div>
+        </div>
+        <div class="broadcast-controls">
+            <button id="playPauseBtn" disabled>播放</button>
+            <button id="rewindBtn" disabled>回到开头</button>
+            <button id="loadAudioBtn">载入新音频</button>
+        </div>
+        <div class="status idle" id="broadcastStatus">长发射模式</div>
+    </div>
+</div>
+
+<script>
+const CH2 = { low: 15000, high: 23000, subBw: 8000, label: 'CH2' };
+const WORKLET_URL = 'ssb-worklet.js';
+const WORKLET_NAME = 'fm2-walkie-processor';
+
+function loadWorkletModule(ctx) {
+    return ctx.audioWorklet.addModule(WORKLET_URL);
+}
+
+
+function formatGain(v) {
+    return (Math.round(v * 10) / 10).toFixed(1) + '×';
+}
+
+function formatTime(sec) {
+    if (!Number.isFinite(sec) || sec < 0) sec = 0;
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return m + ':' + String(s).padStart(2, '0');
+}
+
+function createOutputChain(ctx) {
+    const outputGain = ctx.createGain();
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -18;
+    compressor.knee.value = 6;
+    compressor.ratio.value = 12;
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.15;
+    outputGain.connect(compressor);
+    compressor.connect(ctx.destination);
+    return { outputGain, compressor };
+}
+
+let activeMode = null;
+
+class WalkieTalkie {
+    constructor() {
+        this.audioContext = null;
+        this.stream = null;
+        this.source = null;
+        this.workletNode = null;
+        this.inputGainNode = null;
+        this.outputGainNode = null;
+        this.running = false;
+        this.transmitting = false;
+        this.micGain = 2;
+        this.speakerGain = 5;
+    }
+
+    async start(deviceId) {
+        this.stop();
+        if (!window.AudioWorkletNode) throw new Error('当前浏览器不支持 AudioWorklet');
+
+        this.audioContext = new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' });
+        await this.audioContext.resume();
+        await loadWorkletModule(this.audioContext);
+
+        const constraints = {
+            audio: {
+                deviceId: deviceId ? { exact: deviceId } : undefined,
+                autoGainControl: false,
+                echoCancellation: false,
+                noiseSuppression: false,
+                channelCount: 1
+            }
+        };
+        this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+        this.source = this.audioContext.createMediaStreamSource(this.stream);
+        this.inputGainNode = this.audioContext.createGain();
+        const chain = createOutputChain(this.audioContext);
+        this.outputGainNode = chain.outputGain;
+        this.inputGainNode.gain.value = this.micGain;
+        this.outputGainNode.gain.value = this.speakerGain;
+
+        this.workletNode = new AudioWorkletNode(this.audioContext, WORKLET_NAME, {
+            numberOfInputs: 1,
+            numberOfOutputs: 1,
+            outputChannelCount: [1]
+        });
+        this.syncWorklet();
+        this.setTransmit(false);
+
+        this.source.connect(this.inputGainNode);
+        this.inputGainNode.connect(this.workletNode);
+        this.workletNode.connect(this.outputGainNode);
+        this.running = true;
+    }
+
+    syncWorklet() {
+        if (!this.workletNode) return;
+        this.workletNode.port.postMessage({ type: 'reset' });
+        this.workletNode.port.postMessage({ type: 'transmit', value: this.transmitting });
+    }
+
+    stop() {
+        this.running = false;
+        if (this.workletNode) {
+            try { this.workletNode.disconnect(); } catch (e) {}
+            this.workletNode.port.close();
+            this.workletNode = null;
+        }
+        if (this.source) {
+            try { this.source.disconnect(); } catch (e) {}
+            this.source = null;
+        }
+        if (this.inputGainNode) {
+            try { this.inputGainNode.disconnect(); } catch (e) {}
+            this.inputGainNode = null;
+        }
+        if (this.outputGainNode) {
+            try { this.outputGainNode.disconnect(); } catch (e) {}
+            this.outputGainNode = null;
+        }
+        if (this.stream) {
+            this.stream.getTracks().forEach((t) => t.stop());
+            this.stream = null;
+        }
+        if (this.audioContext) {
+            this.audioContext.close().catch(() => {});
+            this.audioContext = null;
+        }
+    }
+
+    setTransmit(on) {
+        this.transmitting = !!on;
+        if (this.workletNode) {
+            this.workletNode.port.postMessage({ type: 'transmit', value: this.transmitting });
+        }
+    }
+
+    setMicGain(v) {
+        const g = Math.max(0, Math.min(5, Number(v)));
+        if (Number.isNaN(g)) throw new Error('无效麦克风增益');
+        this.micGain = g;
+        if (this.inputGainNode) this.inputGainNode.gain.value = g;
+    }
+
+    setSpeakerGain(v) {
+        const g = Math.max(0, Math.min(10, Number(v)));
+        if (Number.isNaN(g)) throw new Error('无效扬声器增益');
+        this.speakerGain = g;
+        if (this.outputGainNode) this.outputGainNode.gain.value = g;
+    }
+}
+
+class AudioBroadcast {
+    constructor() {
+        this.audioContext = null;
+        this.workletNode = null;
+        this.mediaSource = null;
+        this.outputGainNode = null;
+        this.audioEl = null;
+        this.objectUrl = null;
+        this.running = false;
+        this.playing = false;
+        this.speakerGain = 5;
+        this.progressRaf = null;
+        this.seeking = false;
+        this.fileName = '';
+    }
+
+    async start() {
+        this.stop();
+        if (!window.AudioWorkletNode) throw new Error('当前浏览器不支持 AudioWorklet');
+
+        this.audioContext = new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' });
+        await this.audioContext.resume();
+        await loadWorkletModule(this.audioContext);
+
+        this.audioEl = new Audio();
+        this.audioEl.crossOrigin = 'anonymous';
+        this.audioEl.addEventListener('ended', () => this.onEnded());
+        this.audioEl.addEventListener('timeupdate', () => {
+            if (!this.seeking) this.updateProgressUI();
+        });
+
+        this.mediaSource = this.audioContext.createMediaElementSource(this.audioEl);
+        const chain = createOutputChain(this.audioContext);
+        this.outputGainNode = chain.outputGain;
+        this.outputGainNode.gain.value = this.speakerGain;
+
+        this.workletNode = new AudioWorkletNode(this.audioContext, WORKLET_NAME, {
+            numberOfInputs: 1,
+            numberOfOutputs: 1,
+            outputChannelCount: [1]
+        });
+        this.workletNode.port.postMessage({ type: 'reset' });
+        this.workletNode.port.postMessage({ type: 'transmit', value: true });
+
+        this.mediaSource.connect(this.workletNode);
+        this.workletNode.connect(this.outputGainNode);
+        this.running = true;
+    }
+
+    async loadFile(file) {
+        if (!file) throw new Error('未选择文件');
+        if (!this.running) await this.start();
+
+        if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
+        this.objectUrl = URL.createObjectURL(file);
+        this.fileName = file.name;
+        this.audioEl.src = this.objectUrl;
+        this.audioEl.pause();
+        this.playing = false;
+        await new Promise((resolve, reject) => {
+            this.audioEl.onloadedmetadata = () => resolve();
+            this.audioEl.onerror = () => reject(new Error('音频解码失败'));
+        });
+        this.updateProgressUI();
+        return this.fileName;
+    }
+
+    async play() {
+        if (!this.audioEl || !this.audioEl.src) throw new Error('请先载入音频');
+        await this.audioContext.resume();
+        await this.audioEl.play();
+        this.playing = true;
+        this.startProgressLoop();
+    }
+
+    pause() {
+        if (!this.audioEl) return;
+        this.audioEl.pause();
+        this.playing = false;
+        this.stopProgressLoop();
+    }
+
+    rewind() {
+        if (!this.audioEl) return;
+        this.audioEl.currentTime = 0;
+        this.updateProgressUI();
+    }
+
+    seek(ratio) {
+        if (!this.audioEl || !this.audioEl.duration) return;
+        this.audioEl.currentTime = Math.max(0, Math.min(1, ratio)) * this.audioEl.duration;
+        this.updateProgressUI();
+    }
+
+    onEnded() {
+        this.playing = false;
+        this.pause();
+        document.getElementById('playPauseBtn').textContent = '播放';
+        document.getElementById('broadcastStatus').textContent = '播放结束，已自动暂停';
+        document.getElementById('broadcastStatus').className = 'status warn';
+    }
+
+    startProgressLoop() {
+        this.stopProgressLoop();
+        const tick = () => {
+            if (this.playing && !this.seeking) this.updateProgressUI();
+            this.progressRaf = requestAnimationFrame(tick);
+        };
+        this.progressRaf = requestAnimationFrame(tick);
+    }
+
+    stopProgressLoop() {
+        if (this.progressRaf) {
+            cancelAnimationFrame(this.progressRaf);
+            this.progressRaf = null;
+        }
+    }
+
+    updateProgressUI() {
+        const slider = document.getElementById('progressSlider');
+        const label = document.getElementById('timeLabel');
+        const dur = this.audioEl ? this.audioEl.duration : 0;
+        const cur = this.audioEl ? this.audioEl.currentTime : 0;
+        if (dur > 0) {
+            slider.value = Math.round((cur / dur) * 1000);
+            label.textContent = formatTime(cur) + ' / ' + formatTime(dur);
+        } else {
+            slider.value = 0;
+            label.textContent = '0:00 / 0:00';
+        }
+    }
+
+    setSpeakerGain(v) {
+        const g = Math.max(0, Math.min(10, Number(v)));
+        if (Number.isNaN(g)) throw new Error('无效扬声器增益');
+        this.speakerGain = g;
+        if (this.outputGainNode) this.outputGainNode.gain.value = g;
+    }
+
+    stop() {
+        this.playing = false;
+        this.stopProgressLoop();
+        if (this.audioEl) {
+            this.audioEl.pause();
+            this.audioEl.src = '';
+        }
+        if (this.objectUrl) {
+            URL.revokeObjectURL(this.objectUrl);
+            this.objectUrl = null;
+        }
+        if (this.workletNode) {
+            try { this.workletNode.disconnect(); } catch (e) {}
+            this.workletNode.port.close();
+            this.workletNode = null;
+        }
+        if (this.mediaSource) {
+            try { this.mediaSource.disconnect(); } catch (e) {}
+            this.mediaSource = null;
+        }
+        if (this.outputGainNode) {
+            try { this.outputGainNode.disconnect(); } catch (e) {}
+            this.outputGainNode = null;
+        }
+        if (this.audioContext) {
+            this.audioContext.close().catch(() => {});
+            this.audioContext = null;
+        }
+        this.audioEl = null;
+        this.running = false;
+    }
+}
+
+const walkie = new WalkieTalkie();
+const broadcast = new AudioBroadcast();
+
+const permStatus = document.getElementById('permStatus');
+const radioPanel = document.getElementById('radioPanel');
+const broadcastPanel = document.getElementById('broadcastPanel');
+const setupPanel = document.getElementById('setupPanel');
+const micSelect = document.getElementById('micSelect');
+const spkGainSlider = document.getElementById('spkGainSlider');
+const spkGainVal = document.getElementById('spkGainVal');
+const micGainSlider = document.getElementById('micGainSlider');
+const micGainVal = document.getElementById('micGainVal');
+const pttBtn = document.getElementById('pttBtn');
+const modeBadge = document.getElementById('modeBadge');
+const radioStatus = document.getElementById('radioStatus');
+
+function setPermStatus(cls, msg) {
+    permStatus.className = 'status ' + cls;
+    permStatus.textContent = msg;
+}
+
+function setModeUI(transmit) {
+    if (transmit) {
+        pttBtn.className = 'transmit';
+        pttBtn.textContent = '发射中';
+        modeBadge.className = 'mode-badge tx';
+        modeBadge.textContent = '发射';
+        radioStatus.textContent = `发射 · CH2 → 射频`;
+        radioStatus.className = 'status active';
+    } else {
+        pttBtn.className = 'receive';
+        pttBtn.textContent = '按住发射';
+        modeBadge.className = 'mode-badge rx';
+        modeBadge.textContent = '接收';
+        radioStatus.textContent = `接收 · CH2 → 基带`;
+        radioStatus.className = 'status active';
+    }
+}
+
+function stopAll() {
+    walkie.stop();
+    broadcast.stop();
+    activeMode = null;
+}
+
+function syncSpeakerGain() {
+    const g = parseFloat(spkGainSlider.value);
+    spkGainVal.textContent = formatGain(g);
+    walkie.setSpeakerGain(g);
+    broadcast.setSpeakerGain(g);
+}
+
+spkGainSlider.addEventListener('input', syncSpeakerGain);
+
+micGainSlider.addEventListener('input', () => {
+    walkie.setMicGain(parseFloat(micGainSlider.value));
+    micGainVal.textContent = formatGain(walkie.micGain);
+});
+
+
+async function loadMicList() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputs = devices.filter((d) => d.kind === 'audioinput');
+    micSelect.innerHTML = '';
+    if (inputs.length === 0) {
+        micSelect.innerHTML = '<option value="">无可用麦克风</option>';
+        return;
+    }
+    inputs.forEach((d, i) => {
+        const opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || ('麦克风 ' + (i + 1));
+        micSelect.appendChild(opt);
+    });
+}
+
+document.getElementById('startWalkieBtn').addEventListener('click', async () => {
+    stopAll();
+    setPermStatus('warn', '正在请求麦克风并启动…');
+    try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('浏览器不支持麦克风');
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { autoGainControl: false, echoCancellation: false, noiseSuppression: false, channelCount: 1 }
+        });
+        stream.getTracks().forEach((t) => t.stop());
+        await loadMicList();
+        const deviceId = micSelect.value;
+        if (!deviceId) throw new Error('请选择麦克风');
+
+        walkie.setMicGain(parseFloat(micGainSlider.value));
+        syncSpeakerGain();
+        await walkie.start(deviceId);
+        micGainVal.textContent = formatGain(walkie.micGain);
+
+        activeMode = 'walkie';
+        setupPanel.style.opacity = '0.65';
+        radioPanel.style.display = 'block';
+        broadcastPanel.style.display = 'none';
+        walkie.setTransmit(false);
+        setModeUI(false);
+        setPermStatus('active', '对讲机已启动 · CH2');
+        document.getElementById('startWalkieBtn').disabled = true;
+        document.getElementById('startBroadcastBtn').disabled = true;
+    } catch (err) {
+        console.error(err);
+        setPermStatus('error', '对讲机启动失败: ' + err.message);
+    }
+});
+
+document.getElementById('startBroadcastBtn').addEventListener('click', async () => {
+    stopAll();
+    setPermStatus('warn', '正在启动音频广播…');
+    try {
+        syncSpeakerGain();
+        await broadcast.start();
+        activeMode = 'broadcast';
+        setupPanel.style.opacity = '0.65';
+        radioPanel.style.display = 'none';
+        broadcastPanel.style.display = 'block';
+        document.getElementById('broadcastFileName').textContent = '未载入音频';
+        document.getElementById('playPauseBtn').disabled = true;
+        document.getElementById('rewindBtn').disabled = true;
+        document.getElementById('broadcastStatus').textContent = '请载入音频，播放后长发射至 CH2';
+        document.getElementById('broadcastStatus').className = 'status active';
+        setPermStatus('active', '音频广播已启动（无需麦克风）');
+        document.getElementById('startWalkieBtn').disabled = true;
+        document.getElementById('startBroadcastBtn').disabled = true;
+    } catch (err) {
+        console.error(err);
+        setPermStatus('error', '广播启动失败: ' + err.message);
+    }
+});
+
+const fileInput = document.getElementById('fileInput');
+
+document.getElementById('loadAudioBtn').addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', async () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    try {
+        if (!broadcast.running) {
+            stopAll();
+            syncSpeakerGain();
+            await broadcast.start();
+            activeMode = 'broadcast';
+            broadcastPanel.style.display = 'block';
+        }
+        const name = await broadcast.loadFile(file);
+        document.getElementById('broadcastFileName').textContent = name;
+        document.getElementById('playPauseBtn').disabled = false;
+        document.getElementById('rewindBtn').disabled = false;
+        document.getElementById('broadcastStatus').textContent = '已载入，点击播放开始长发射';
+        document.getElementById('broadcastStatus').className = 'status active';
+    } catch (err) {
+        alert('载入失败: ' + err.message);
+    }
+    fileInput.value = '';
+});
+
+document.getElementById('playPauseBtn').addEventListener('click', async () => {
+    try {
+        if (broadcast.playing) {
+            broadcast.pause();
+            document.getElementById('playPauseBtn').textContent = '播放';
+            document.getElementById('broadcastStatus').textContent = '已暂停';
+        } else {
+            await broadcast.play();
+            document.getElementById('playPauseBtn').textContent = '暂停';
+            document.getElementById('broadcastStatus').textContent = '播放中 · 长发射';
+            document.getElementById('broadcastStatus').className = 'status active';
+        }
+    } catch (err) {
+        alert(err.message);
+    }
+});
+
+document.getElementById('rewindBtn').addEventListener('click', () => {
+    broadcast.rewind();
+    document.getElementById('playPauseBtn').textContent = broadcast.playing ? '暂停' : '播放';
+});
+
+const progressSlider = document.getElementById('progressSlider');
+progressSlider.addEventListener('mousedown', () => { broadcast.seeking = true; });
+progressSlider.addEventListener('touchstart', () => { broadcast.seeking = true; }, { passive: true });
+progressSlider.addEventListener('input', () => {
+    broadcast.seek(parseInt(progressSlider.value, 10) / 1000);
+    document.getElementById('timeLabel').textContent =
+        formatTime(broadcast.audioEl.currentTime) + ' / ' + formatTime(broadcast.audioEl.duration);
+});
+progressSlider.addEventListener('mouseup', () => { broadcast.seeking = false; });
+progressSlider.addEventListener('touchend', () => { broadcast.seeking = false; });
+
+function beginTransmit(e) {
+    e.preventDefault();
+    if (activeMode !== 'walkie' || !walkie.running) return;
+    walkie.setTransmit(true);
+    setModeUI(true);
+}
+
+function endTransmit(e) {
+    e.preventDefault();
+    if (activeMode !== 'walkie' || !walkie.running) return;
+    walkie.setTransmit(false);
+    setModeUI(false);
+}
+
+pttBtn.addEventListener('mousedown', beginTransmit);
+pttBtn.addEventListener('mouseup', endTransmit);
+pttBtn.addEventListener('mouseleave', endTransmit);
+pttBtn.addEventListener('touchstart', beginTransmit, { passive: false });
+pttBtn.addEventListener('touchend', endTransmit);
+pttBtn.addEventListener('touchcancel', endTransmit);
+
+window.addEventListener('beforeunload', () => {
+    stopAll();
+});
+</script>
+</body>
+</html>
