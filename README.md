@@ -1,6 +1,7 @@
 # SoundSSB · 浏览器里的上边带声学无线电
 > 用声波模拟单边带（USB）调制，在普通电脑声卡的 15–23 kHz 高频段上实现实时语音通信和音频广播。
 **不需要任何硬件，不需要无线电执照，打开浏览器就能玩。**
+
 [![License](license-aip.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Web-blue)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 ---
